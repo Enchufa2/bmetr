@@ -382,7 +382,7 @@ notes <- data.frame(
   stage = c(3, 2, 1, 1, 1))
 breaks <- c(40, 50, 60, 80, 120, 160)
 expand <- c(39, 70)
-balpha <- 0.5
+balpha <- 0.8
 
 g <- ggplot(example.window) +
   aes(n, tempo, color=conductor) +
@@ -398,14 +398,14 @@ h <- ggplot(example.window) + theme_void() +
   aes(tempo, after_stat(density)) +
   coord_flip() + expand_limits(x=expand) +
   facet_grid("stage", scales="free_y", space="free_y") +
-  stat_bin(aes(fill=conductor), position="identity",
-           alpha=.7, binwidth=1, boundary=40) +
+  stat_bin(aes(fill=sapply(strsplit(as.character(conductor), ","), "[", 1)),
+           position="identity", alpha=.7, binwidth=1, boundary=40) +
   geom_vline(aes(xintercept=mark), notes, alpha=balpha, linetype=2) +
   geom_text(aes(mark, 0.32, label=label, vjust=vjust), notes,
             hjust=1, alpha=balpha, size=3) +
   scale_x_continuous(breaks=breaks) + labs(fill="Conductor") +
   guides(color=FALSE, fill=guide_legend(title=, override.aes=list(alpha=1))) +
-  theme(legend.position=c(1, .77), legend.justification=c(1, 1),
+  theme(legend.position=c(1, .85), legend.justification=c(1, 1),
         legend.key.size=unit(5, "pt"), legend.title=element_text(size=10),
         legend.text=element_text(size=8), strip.text=element_blank())
 
