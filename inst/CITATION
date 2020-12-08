@@ -1,0 +1,13 @@
+bibentry(
+  header  = "To cite this work in publications use:",
+  bibtype = "Article",
+  title   = "Conductors' tempo choices shed light over Beethoven's metronome",
+  author  = c(person("Almudena", "Martín-Castro"),
+              person("Iñaki", "Ucar")),
+  year    = "2020",
+  journal = "PLOS ONE",
+  doi     = "10.1371/journal.pone.0243616",
+  pages   = "e0243616",
+  volume  = "",
+  number  = ""
+)

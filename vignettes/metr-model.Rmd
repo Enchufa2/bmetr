@@ -1,14 +1,11 @@
 ---
 title: "Beethoven's metronome from photographs"
+subtitle: "from [_Conductors' tempo choices shed light over Beethoven's metronome_](https://doi.org/10.1371/journal.pone.0243616)"
 author: "Almudena Martín-Castro, Iñaki Ucar"
-date: "`r Sys.Date()`"
-output: 
-  html_document:
-    number_sections: true
-    theme: united
-    toc: yes
-    toc_float:
-      collapsed: false
+date: "2020-12-16"
+output:
+  tufte::tufte_html:
+    tufte_features: ["fonts", "italics"]
 vignette: >
   %\VignetteIndexEntry{Beethoven's metronome from photographs}
   %\VignetteEngine{knitr::rmarkdown}
@@ -16,9 +13,38 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(fig.align="center")
+required <- c("tuneR", "ggplot2", "ggthemes")
+
+if (!all(sapply(required, requireNamespace, quietly=TRUE)))
+  knitr::opts_chunk$set(eval=FALSE)
+
+knitr::opts_chunk$set(message=FALSE, warning=FALSE)
+if (!identical(Sys.getenv("IN_PKGDOWN"), "true"))
+  knitr::opts_chunk$set(out.width="100%")
+
+hook_output <- knitr::knit_hooks$get("source")
+knitr::knit_hooks$set(source = function(x, options) {
+  out <- hook_output(x, options)
+  if (options$echo)
+    out <- paste("<details>", out, "</details>", sep="\n")
+  out
+})
+
+options(dplyr.summarise.inform=FALSE)
 
 fig1 <- "**Mechanical metronomes.** From left to right, a contemporary Neewer© NW-707, TB 06, TB 07 (both from Tony Bingham's _Metronomes and Musical Time_), Maelzel's patent, and a diagram depicting the main parameters of the model."
+
+fig2 <- "**Peak detection in sample file**."
+
+fig3 <- "**Model validation**. The parametrization of a contemporary metronome is compared to its experimental oscillation frequency. It should be noted that the experimental results do not exactly follow the 1:1 relation (gray line), which means that the calibration of the scale has a small error, and our model accurately predicts it. The model by Forsén _et al._ (2013), which uses a double pendulum without corrections, is included for completeness."
+
+fig4 <- "**Effect of corrections** throughout the whole range for the same metronome, expressed as a percentage over the null model (frictionless, small-angle approximation for a massless rod) for each metronome mark."
+
+fig5 <- "**Model fit** for the oscillation frequency squared as a function of the position of the moving weight."
+
+fig6 <- "**Parameter estimation for all the metronomes considered**. Estimation of nondimensionalized masses $\\mu'$ (rod) and $M'$ (lower mass). Both controls (measuring a dismantled metronome with precision as well as measuring all the distances from a photograph) accurately estimate the true masses for the contemporary metronome, thus validating the estimation for the rest of the metronomes."
+
+table1 <- "**Beethoven's metronome estimate**, as the average of the estimates for the TB 06, TB 07 metronomes and the patent."
 ```
 
 This vignette discusses and validates a mathematical model using experimental measurements from a contemporary metronome (see `help(metr.data)`). Then, we fit the metronome model for several metronomes to obtain their nondimensionalized masses, and finally, we characterize Beethoven's metronome.
@@ -32,8 +58,8 @@ library(ggplot2)
 theme_set(ggthemes::theme_tufte(base_family="sans"))
 ```
 
-```{r, echo=FALSE, fig.cap=fig1}
-knitr::include_graphics(system.file("extdata/metronomes.jpg", package="bmetr"))
+```{r, echo=FALSE, fig.cap=fig1, fig.fullwidth=TRUE, out.width="100%"}
+knitr::include_graphics("metronomes.jpg")
 ```
 
 # The model
@@ -55,14 +81,7 @@ where $\epsilon = \frac{\tau_\mathrm{roz}}{\Omega^2 I \theta}$ is a nondimension
 
 ## Measurements
 
-A contemporary metronome was used to validate the model. First, the angular frequency for each metronome mark was measured by means of extracting the tickling period over 15-second audio samples. This package contains a sample file with the audio recorded for 100 bpm.
-
-```{r}
-f.raw <- tuneR::readWave(system.file("extdata/100.wav", package="bmetr"))
-f.raw
-```
-
-These are the steps to measure the frequency:
+A contemporary metronome was used to validate the model. First, the angular frequency for each metronome mark was measured by means of extracting the tickling period over 15-second audio samples. This package contains a sample file with the audio recorded for 100 bpm. These are the steps to measure the frequency:
 
 1. Normalize and square the signal.
 2. Remove noise (just zeroing values under 0.5).
@@ -71,12 +90,12 @@ These are the steps to measure the frequency:
 
 With the sample file:
 
-```{r}
+```{r, fig.margin=TRUE, fig.cap=fig2}
+f.raw <- tuneR::readWave("100.wav")
 f <- tuneR::normalize(f.raw)^2
 f@left[f@left < 0.5] <- 0
 peaks <- find_peaks(f@left, f@samp.rate * 0.05)
-```
-```{r}
+
 tuneR::plot(f.raw)
 points(peaks/f@samp.rate, abs(f.raw@left[peaks]), col="red", pch=19)
 ```
@@ -100,7 +119,7 @@ bpm <- do.call(c, lapply(wav, function(x) {
 }))
 ```
 
-All these measurements are included in the `metr.neewer` data set.
+All these measurements are included in the `metr.neewer` data set:
 
 ```{r}
 head(metr.neewer)
@@ -110,7 +129,7 @@ head(metr.neewer)
 
 Then, the metronome was dismantled and all model parameters were measured (dimensions and masses). Our model achieves even better accuracy than the calibration set by the manufacturer (MAE of less than 2 bpm, compared to a MAE of 3 bpm for the metronome scale).
 
-```{r, message=FALSE, warning=FALSE}
+```{r, fig.cap=fig3}
 # measurements for the masses
 # M <- set_errors(30.8, 0.01)
 # mu <- set_errors(3.8, 0.01)
@@ -160,7 +179,7 @@ ggplot(comparative) +
 
 The same contemporary metronome was used to study the effect of each kind of correction. To this end, the true mass of the rod, the true oscillation angle and the maximum friction allowed by the model ($\epsilon = 0.5$) were separately compared against the null model (null mass, oscillation angle and friction) along the whole scale range.
 
-```{r, message=FALSE, warning=FALSE}
+```{r, fig.cap=fig4}
 corrections <- neewer %>%
   mutate(base     = metr_model(r+rcm, R, M., l, L, 0,   g, 0, 0)) %>%
   mutate(Rod      = metr_model(r+rcm, R, M., l, L, mu., g, 0, 0)) %>%
@@ -203,7 +222,7 @@ $$
 
 This linear model was fitted for two old metronomes from dates similar to Beethoven's metronome, the patent diagram, and the contemporary metronome as a control (see first figure).
 
-```{r}
+```{r, fig.cap=fig5}
 metr <- metr.marks
 metr[grep("Neewer", metr$model),]$mark <- rep(metr.neewer$bpm, 2)
 metr <- metr %>%
@@ -238,7 +257,7 @@ ggplot(pred) +
 
 Metronome dimensions were measured using Fiji on the basis of the total heights reported in Tony Bingham's catalogue. The total height is assumed to be 31 cm for the patent according to the patent description and the height of the oldest metronome. The oscillation angle is taken as the maximum inclination, bounded by the box. Parameter R cannot be directly measured for some metronomes (when the box hides the lower mass), so it was estimated taking into account the box size and the patent description. Given that the lower mass hangs approximately from the end of the rod, it is assumed that $L \approx R$. With these assumptions, we estimated the nondimensional masses, $M'$ and $μ'$, for each metronome from the regression coefficients.
 
-```{r}
+```{r, fig.cap=fig6}
 note <- data.frame(model="Control (true)", M.=M., mu.=mu.)
 
 ggplot(fit) +
@@ -262,5 +281,5 @@ Results show that this methodology accurately estimates the masses for the contr
 res <- as.data.frame(fit[3:5, 1:3])
 res$model <- as.character(res$model)
 res[4,] <- list("Beethoven's metronome (average)", mean(res$M.), mean(res$mu.))
-res
+knitr::kable(res, caption=table1)
 ```

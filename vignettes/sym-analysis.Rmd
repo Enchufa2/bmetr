@@ -1,14 +1,11 @@
 ---
 title: "Beethoven's symphonies analysis"
+subtitle: "from [_Conductors' tempo choices shed light over Beethoven's metronome_](https://doi.org/10.1371/journal.pone.0243616)"
 author: "Almudena Martín-Castro, Iñaki Ucar"
-date: "`r Sys.Date()`"
+date: "2020-12-16"
 output:
-  html_document:
-    number_sections: true
-    theme: united
-    toc: yes
-    toc_float:
-      collapsed: false
+  tufte::tufte_html:
+    tufte_features: ["fonts", "italics"]
 vignette: >
   %\VignetteIndexEntry{Beethoven's symphonies analysis}
   %\VignetteEngine{knitr::rmarkdown}
@@ -16,10 +13,43 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(fig.align="center")
+required <- c("zoo", "lme4", "merTools", "performance",
+              "ggplot2", "ggthemes", "ggpmisc", "ggridges", "patchwork")
+
+if (!all(sapply(required, requireNamespace, quietly=TRUE)))
+  knitr::opts_chunk$set(eval=FALSE)
+
+knitr::opts_chunk$set(message=FALSE, warning=FALSE)
+if (!identical(Sys.getenv("IN_PKGDOWN"), "true"))
+  knitr::opts_chunk$set(out.width="100%")
+
+hook_output <- knitr::knit_hooks$get("source")
+knitr::knit_hooks$set(source = function(x, options) {
+  out <- hook_output(x, options)
+  if (options$echo)
+    out <- paste("<details>", out, "</details>", sep="\n")
+  out
+})
+
 options(dplyr.summarise.inform=FALSE)
 
+table1 <- "**List of recordings studied in this work**. Each recording details the conductor's name, orchestra, recording dates, label, Unique Product Code (UPC) and style."
+
+table2 <- "**Average slow-down estimation** for each stylistic group."
+
 fig1 <- '**Most common tempo harmonics for each kind of meter**. The tempo extraction algorithm relies on periodic patterns and rhythmic self-similarities. This explains why many of its estimated tempi are actually multiples or submultiples of the real tempo of the sample. In this work, we have called these kinds of mistaken tempi "harmonics" due to the similarity with the homonym physical phenomenon. Their most common values depend on the metric structure of the music and are displayed here. More rarely, we also detected: (i) harmonics 2 y 3/4 in compound meters; (ii) harmonics 2 y 3/4 in meters with binary subdivision due to the occasional use of triplets; (iii) harmonic 2/3, in triple meters with binary subdivision.'
+
+fig2 <- "**Tempo data from symphonic recordings**. **a,** Representative example of raw data from the tempo extraction algorithm for 3 different conductors performing the 1st movement of the 3rd Symphony. Although the time series seem noisy on first sight, the histogram in the right panel shows a clear pattern: the algorithm not only detects the true tempo (components right below Beethoven's mark), but also multiples (or harmonics) of this frequency (in this example, x3/2 and x3). **b,** Using Beethoven's mark as a reference, harmonics in the raw data are found and rectified. **c,** A final smoothing ensures consistency in terms of continuity throughout contiguous samples."
+
+fig3 <- "**Validation of tempo data**. **a,** Each dot represents a conductor, and compares the median tempo difference (tempo choice minus Beethoven's mark) for the main and validation data sets. **b,** Each dot represents a metronome mark, and compares the median tempo for the main and validation data sets. Both figures show a 1:1 relation, which ensures the consistency of the main data set."
+
+fig4 <- "**Tempo data from symphonic recordings**. Distribution of tempo difference between conductors' tempo choices and Beethoven's marks. K. Böhm, at the bottom of the list, is well known among critics as one of the slowest performers of Beethoven. On the other end, R. Chailly is the conductor who comes closer to the composer's indications as he reportedly intended. But even he falls slightly behind Beethoven's marks on average, a circumstance that has been even praised by some critics. Remarkably, M. Pletnev has the most extreme and sparse distribution, reaching tempi far below and above other conductors. In fact, critics consider him an artist of contrasts, unorthodox and unpredictable."
+
+fig5 <- "**Performed tempo by stylistic criterion vs. Beethoven's marks**. Each panel shows the distribution of tempo choices for each mark. The median for each distribution is shown as a dot, and the grayed line represents the 1:1 relation. On top of that, a mixed-effects regression line (in blue) for the medians, with a 95% Confidence Interval (CI), quantifies the effect of each group of conductors: all the marks are reduced on average by a fixed amount along the whole metronome range, preserving the relative discrepancy between groups. Interestingly, 72 bpm (7th Symphony, 4th movement; represented by an empty dot) seems to be the only mark that all groups accept as accurate, and therefore it was excluded from the regression model."
+
+fig6 <- "**Effect of different metronome distortions on its frequency compared to the average slow-down of Romantic conductors**. **a,** Reduction of the distance of the lower mass to the shaft, $R$. **b,** Reduction of the lower mass, $M$. **c,** Inclination of the metronome."
+
+fig7 <- "**Effect of different metronome distortions on its frequency compared to the average slow-down of Romantic conductors**. **d,** Displacement of the scale relative to the moving weight."
 ```
 
 This vignette presents an analysis of the performed tempo for 36 recordings, by 36 different conductors, of Beethoven's symphonies (see `help(sym.data)`).
@@ -38,9 +68,9 @@ theme_set(ggthemes::theme_tufte(base_family="sans"))
 
 In this work, we selected 36 recordings of Beethoven's complete symphonic works as performed by 36 different conductors, and classified them as Historically Informed (HI), under HI influence and Romantic, according to the analysis of L. D. Young (1991) and the performance reviews included with the recordings.
 
-```{r}
+```{r, echo=FALSE}
 knitr::kable(sym.recordings[, c(1, 6, 4, 5, 8)], col.names=c(
-  "Conductor", "Dates", "Label", "UPC", "Style"))
+  "Conductor", "Dates", "Label", "UPC", "Style"), caption=table1)
 ```
 
 The 9th Symphony is exceptional for various reasons. First, it was metronomized seven years later than the others using a different device, of which the date of purchase is not known. Second, its complexity, especially regarding the fourth movement, makes tempo extraction too unstable and unreliable. Finally, some authors have questioned the validity of the documental sources where these tempi were first published, only months before the composer's death, due to multiple copy mistakes. For all these reasons, we decided to exclude it from the analysis. The rest of the data set comprises 1188 audio files (one symphonic movement per track), more than 169 hours of music.
@@ -49,13 +79,7 @@ The 9th Symphony is exceptional for various reasons. First, it was metronomized 
 
 Audio files were sampled using a sliding window. Its duration was defined as a fraction of the track, so that the average width was 30 seconds, with a 90% overlap. In this way, each symphonic movement is divided in the same number of samples, regardless of the interpreter or the duration of the track. Every sample was then analyzed using a state-of-the-art tempo extraction algorithm by G. Percival et al. (2013, 2014) that bases pulse detection on self-similarity relations within the rhythm of a musical recording, and is implemented as part of the open-source framework [Marsyas](https://github.com/marsyas/marsyas).
 
-This package contains all the auxiliary scripts used to extract tempo from the original recordings following this procedure:
-
-```{r}
-list.files(system.file("scripts", package="bmetr"))
-```
-
-The result is the following data set:
+This package contains all the auxiliary scripts used to extract tempo from the original recordings following this procedure (see the `scripts` folder). The result is the following data set:
 
 ```{r}
 head(sym.window)
@@ -66,7 +90,7 @@ head(sym.window)
 Sections containing a change of tempo or meter were identified and located on the score and the resulting samples. Different sections and movements were classified according to their meter (simple, duple or triple meter, with binary or ternary subdivision). This classification is important in order to identify the most probable tempo harmonics detected by the tempo extraction algorithm for each sample.
 
 ```{r, echo=FALSE, fig.cap=fig1}
-knitr::include_graphics(system.file("extdata/harmonics.png", package="bmetr"))
+knitr::include_graphics("harmonics.png")
 ```
 
 First, we annotate different section numbers based on the scores.
@@ -373,7 +397,7 @@ example.window <- c(example.window, list(filter(dt.window, !!example.filter)))
 
 These are the results of this data cleaning process:
 
-```{r, out.width="100%", fig.width=8.4}
+```{r, fig.cap=fig2}
 example.window <- bind_rows(example.window, .id="stage")
 notes <- data.frame(
   mark = rep(unique(example.window$mark), 5) * c(rep(1, 3), 3/2, 3),
@@ -418,7 +442,7 @@ The top panel shows a representative example of raw data from the tempo extracti
 
 A complementary methodology was developed to assess the validity of this collection of tempo measurements. We sampled 30 seconds from the last minute of every movement, thus compiling a set of finales, where tempo is arguably more stable (see `help(sym.sample`). Tempo was also extracted using Marsyas on first pass, but then carefully curated by hand. The main data set is validated by comparing the median tempo for each conductor and mark with the median tempo as obtained from this data set of finales.
 
-```{r}
+```{r, fig.show="hold", out.width="50%", fig.width=3.5, fig.asp=1, fig.cap=fig3}
 dt.sample <- sym.sample %>%
   left_join(sym.marks, by=c("symphony", "movement", "section"))
 
@@ -431,9 +455,7 @@ dt.val.conductor <- dt.window %>%
       summarise(sample = median(tempo - mark, na.rm=TRUE))) %>%
   left_join(sym.recordings[,c(1, 8)], by="conductor") %>%
   mutate(ptype = droplevels(ptype, "Romantic"))
-```
 
-```{r}
 ggplot(dt.val.conductor) +
   aes(window, sample) + ggthemes::geom_rangeframe() +
   geom_abline(color="lightgray") +
@@ -443,9 +465,7 @@ ggplot(dt.val.conductor) +
   labs(x="Main data set", y="Validation data set", color="Performance",
        subtitle="Median tempo difference by conductor [bpm]") +
   theme(legend.position=c(1, 0), legend.justification=c(1, 0))
-```
 
-```{r}
 dt.val.mark <- dt.window %>%
   group_by(mark) %>%
   summarise(window = median(tempo, na.rm=TRUE)) %>%
@@ -453,9 +473,7 @@ dt.val.mark <- dt.window %>%
     dt.sample %>%
       group_by(mark) %>%
       summarise(sample = median(tempo, na.rm=TRUE)))
-```
 
-```{r}
 ggplot(dt.val.mark) +
   aes(window, sample) + ggthemes::geom_rangeframe() +
   geom_abline(color="lightgray") +
@@ -472,7 +490,7 @@ ggplot(dt.val.mark) +
 
 After this process, we obtained a very accurate description of the performed tempi of Beethoven's symphonies, which supports previous qualitative analyses. Overall, performed tempi are always slower than Beethoven's marks on average, but the influence of the HI movement is evident: attending to the median of their distribution, 12 out of the 15 fastest interpretations correspond to HI or HI-influenced performers.
 
-```{r, message=FALSE, warning=FALSE}
+```{r, fig.cap=fig4}
 dt.window <- dt.window %>%
   left_join(sym.recordings[,c(1, 8)], by="conductor") %>%
   mutate(conductor = reorder(conductor, tempo - mark, median, na.rm=TRUE))
@@ -499,7 +517,7 @@ Karl Böhm, at the bottom of the list, is well known among critics as one of the
 
 Performed tempo is modelled as a function of the metronome marks by means of a mixed-effects linear model, using the intercept as a random effect for each conducting style.
 
-```{r, warning=FALSE, message=FALSE}
+```{r}
 dt.medians <- dt.window %>%
   group_by(ptype, mark) %>%
   summarise(tempo = median(tempo, na.rm=TRUE))
@@ -508,16 +526,15 @@ dt.exception <- filter(dt.medians, mark == 72)
 dt.medians <- filter(dt.medians, mark != 72)
 
 fit <- lmer(tempo ~ mark + (1 | ptype), dt.medians)
-summary(fit)
 
 re <- merTools::REsim(fit)
 names(re)[6] <- "mean.se"
 re <- unite_errors(re)
 re$mean <- fixef(fit)[1] + re$mean
-re[, 1:4]
+knitr::kable(re[, 1:4], caption=table2)
 ```
 
-```{r, out.width="100%", fig.width=8.4}
+```{r, fig.asp=1/2.7, fig.width=12, fig.fullwidth=TRUE, out.width="100%", fig.cap=fig5}
 dt.medians <- cbind(dt.medians, merTools::predictInterval(fit, level=0.95))
 
 r2 <- performance::r2(fit)
@@ -567,43 +584,39 @@ p <- ggplot(dt.medians.r) +
   theme(legend.position=c(.02, 1), legend.justification=c(0, 1))
 ```
 
-We analyzed the possible variation of the lower mass M and its distance to the shaft R resulting from some possible blow that could have broken or loosen it up, as proposed by Forsén et al. (2013). However, these are similar distortions that mostly affect the slower frequencies. 
+We analyzed the possible variation of the lower mass M and its distance to the shaft R resulting from some possible blow that could have broken or loosen it up, as proposed by Forsén et al. (2013). However, these are similar distortions that mostly affect the slower frequencies. We also considered different inclinations of the metronome, maybe held in an unstable position on the piano while rehearsing. This affects the gravitational acceleration experimented by the pendulum, but would have caused the quicker frequencies to decelerate mostly and, more importantly, would only be noticeable for extremely sharp inclinations.
 
-```{r}
-p + scale_color_gradient(breaks=c(0, -4, -8), name="Variation of R [mm]") +
+```{r, fig.asp=1/3, fig.width=12, fig.fullwidth=TRUE, fig.cap=fig6, out.width="100%"}
+p1 <- p + scale_color_gradient(breaks=c(0, -4, -8), name="Variation of R [mm]") +
   stat_function(fun=metr_model_bias, args=list(
     R=c(R, R-2), M.=M., l=l, mu.=mu., A=A), aes(color=-2)) +
   stat_function(fun=metr_model_bias, args=list(
     R=c(R, R-5), M.=M., l=l, mu.=mu., A=A), aes(color=-5)) +
   stat_function(fun=metr_model_bias, args=list(
     R=c(R, R-8), M.=M., l=l, mu.=mu., A=A), aes(color=-8))
-```
 
-```{r}
-p + scale_color_gradient(breaks=c(0, -10, -15), name="Variation of M [%]") +
+p2 <- p + scale_color_gradient(breaks=c(0, -10, -15), name="Variation of M [%]") +
   stat_function(fun=metr_model_bias, args=list(
     R=R, M.=c(M., M.-0.05*M.), l=l, mu.=mu., A=A), aes(color=-5)) +
   stat_function(fun=metr_model_bias, args=list(
     R=R, M.=c(M., M.-0.10*M.), l=l, mu.=mu., A=A), aes(color=-10)) +
   stat_function(fun=metr_model_bias, args=list(
     R=R, M.=c(M., M.-0.15*M.), l=l, mu.=mu., A=A), aes(color=-15))
-```
 
-We also considered different inclinations of the metronome, maybe held in an unstable position on the piano while rehearsing. This affects the gravitational acceleration experimented by the pendulum, but would have caused the quicker frequencies to decelerate mostly and, more importantly, would only be noticeable for extremely sharp inclinations.
-
-```{r}
-p + scale_color_gradient(breaks=c(0, 20, 40), trans="reverse", name="Variation of inclination [°]") +
+p3 <- p + scale_color_gradient(breaks=c(0, 20, 40), trans="reverse", name="Variation of inclination [°]") +
   stat_function(fun=metr_model_bias, args=list(
     R=R, M.=M., l=l, mu.=mu., A=A, g=9.807*c(1, cos(10*pi/180))), aes(color=10)) +
   stat_function(fun=metr_model_bias, args=list(
     R=R, M.=M., l=l, mu.=mu., A=A, g=9.807*c(1, cos(25*pi/180))), aes(color=25)) +
   stat_function(fun=metr_model_bias, args=list(
     R=R, M.=M., l=l, mu.=mu., A=A, g=9.807*c(1, cos(40*pi/180))), aes(color=40))
+
+patchwork::wrap_plots(p1, p2, p3, nrow=1)
 ```
 
 Finally, a shift of the moving weight relative to the scale is the only mechanism that describes the observed slow-down of tempo by performers, which in turn can be explained by the user reading the marks below the moving weight.
 
-```{r}
+```{r, fig.cap=fig7}
 p + scale_color_gradient(breaks=c(0, 12, 16), trans="reverse", name="Scale shift [mm]") +
   stat_function(fun=metr_model_bias, args=list(
     R=R, M.=M., l=l, mu.=mu., A=A, shift=8), aes(color=8)) +

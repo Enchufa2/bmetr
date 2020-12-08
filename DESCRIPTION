@@ -1,21 +1,24 @@
 Package: bmetr
 Type: Package
 Title: Beethoven's Metronome Analysis
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: c(
-    person("Almudena", "Martín-Castro", email="almudena.m.castro@gmail.com",
-      role=c("aut", "cph")),
+    person("Almudena", "Martín-Castro", role=c("aut", "cph")),
     person("Iñaki", "Ucar", email="inaki.ucar@uc3m.es",
       role=c("aut", "cph", "cre"), comment=c(ORCID="0000-0001-6403-5550")))
-Description: Supporting data and methods for the paper "Conductors’ tempo
-    choices shed light over Beethoven’s metronome".
+Description: Supporting data and methods for Martín-Castro & Ucar (2020,
+    <doi:10.1371/journal.pone.0243616>). Includes functions and utilities for
+    modelling a mechanical metronome and filtering tempo signals.
 License: MIT + file LICENSE
 Encoding: UTF-8
+URL: https://github.com/Enchufa2/bmetr
+BugReports: https://github.com/Enchufa2/bmetr/issues
 LazyData: true
 Depends: R (>= 3.5.0)
-Imports: errors, dplyr, zoo, tuneR, lme4, merTools, performance,
-         ggplot2, scales, ggridges, ggthemes, ggpmisc, patchwork
-Suggests: knitr, rmarkdown
+Imports: stats, graphics, errors, dplyr
+Suggests: zoo, tuneR, lme4, merTools, performance,
+          ggplot2, ggridges, ggthemes, ggpmisc, patchwork,
+          knitr, tufte
 RoxygenNote: 7.1.1
 Roxygen: list(old_usage = TRUE)
 VignetteBuilder: knitr
