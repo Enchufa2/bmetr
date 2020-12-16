@@ -8,6 +8,6 @@ bibentry(
   journal = "PLOS ONE",
   doi     = "10.1371/journal.pone.0243616",
   pages   = "e0243616",
-  volume  = "",
-  number  = ""
+  volume  = "15",
+  number  = "12"
 )

@@ -12,7 +12,7 @@ tempo signals. See the vignettes for further details.
 \references{
 Martín-Castro A, Ucar I (2020).
 Conductors' tempo choices shed light over Beethoven's metronome.
-\emph{PLOS ONE}. \doi{10.1371/journal.pone.0243616}
+\emph{PLOS ONE} 15(12), e0243616. \doi{10.1371/journal.pone.0243616}
 }
 \author{
 Almudena Martín-Castro, Iñaki Ucar

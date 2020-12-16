@@ -7,7 +7,7 @@ Supporting data and methods for
 
 - Almudena Martín-Castro and Iñaki Ucar (2020).
   "Conductors' _tempo_ choices shed light over Beethoven's metronome."
-  _PLOS ONE_, x (x), e0243616. DOI:
+  _PLOS ONE_, **15**(12), e0243616. DOI:
   [10.1371/journal.pone.0243616](https://doi.org/10.1371/journal.pone.0243616)
 
 Includes functions and utilities for modelling a mechanical metronome and
