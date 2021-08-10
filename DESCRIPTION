@@ -18,7 +18,7 @@ Depends: R (>= 3.5.0)
 Imports: stats, graphics, errors, dplyr
 Suggests: zoo, tuneR, lme4, merTools, performance,
           ggplot2, ggridges, ggthemes, ggpmisc, patchwork,
-          knitr, tufte
+          knitr, rmarkdown, tufte
 RoxygenNote: 7.1.1
 Roxygen: list(old_usage = TRUE)
 VignetteBuilder: knitr
