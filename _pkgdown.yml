@@ -1,5 +1,7 @@
 template:
-  params:
-    bootswatch: yeti
+  bootstrap: 5
+  bootswatch: yeti
+navbar:
+  bg: dark
 figures:
   dev: grDevices::png
